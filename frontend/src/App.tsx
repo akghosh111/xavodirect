@@ -1,13 +1,24 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 
 function App() {
-  const [messages, setMessages] = useState(["hi there", "hello"])
+  const [messages, setMessages] = useState(["hi there", "hello"]);
+
+  const wsRef = useRef();
 
   useEffect(() => {
-    const ws = new WebSocket("http://localhost:3000")
+    const ws = new WebSocket("http://localhost:8080")
     ws.onmessage = (event) => {
       setMessages(m => [...m, event.data])
+    }
+    wsRef.current = ws;
+    ws.onopen =() => {
+      ws.send(JSON.stringify({
+      type: "join",
+      payload: {
+        roomId: "1"
+      }
+    }))
     }
   }, [])
 
@@ -21,7 +32,15 @@ function App() {
             <div className="bg-neutral-800 p-2 rounded-2xl w-full max-w-3xl mb-5">
                 <textarea className="w-full resize-none outline-0 p-3" rows={2} id="input"></textarea>
                 <div className="flex justify-end items-center">
-                    <button id="ask" className="bg-white px-4 py-1 rounded-full text-black cursor-pointer hover:bg-gray-300">Ask</button>
+                    <button onClick={() => {
+                      const message = document.getElementById("input").value;
+                      wsRef.current.send(JSON.stringify({
+                        type: "chat",
+                        payload: {
+                          message: message
+                        }
+                      }))
+                    }} id="ask" className="bg-white px-4 py-1 rounded-full text-black cursor-pointer hover:bg-gray-300">Ask</button>
                 </div>
             </div>
         </div>
