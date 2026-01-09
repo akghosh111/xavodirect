@@ -33,7 +33,12 @@ wss.on("connection", (socket) => {
 
             for(let i=0; i<allSockets.length; i++){
                 if(allSockets[i].room == currentUserRoom){
-                    allSockets[i].socket.send(parsedMessage.payload.message)
+                    allSockets[i].socket.send(
+                        JSON.stringify({
+                            senderId: parsedMessage.payload.senderId,
+                            message: parsedMessage.payload.message
+                        })
+                    );
                 }
             }
         }

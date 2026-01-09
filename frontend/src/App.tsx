@@ -1,8 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 
 function App() {
-  const [messages, setMessages] = useState<string[]>(["hi there", "hello"]);
+  // const [messages, setMessages] = useState<string[]>(["hi there", "hello"]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+
+  const myIdRef = useRef(crypto.randomUUID());
+
+  const [strangerMap, setStrangerMap] = useState<Record<string, string>>({});
+  const strangerCountRef = useRef(1);
+
+  type ChatMessage = {
+    senderId: string;
+    message: string;
+  }
+
+  
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -10,7 +23,19 @@ function App() {
     const ws = new WebSocket("ws://localhost:8080");
 
     ws.onmessage = (event) => {
-      setMessages((m) => [...m, event.data]);
+      const data = JSON.parse(event.data) as ChatMessage;
+
+      if(data.senderId !== myIdRef.current){
+        setStrangerMap((prev) => {
+          if(prev[data.senderId]) return prev;
+
+          return {
+            ...prev,
+            [data.senderId]: `Stranger #${strangerCountRef.current++}`
+          };
+        });
+      }
+      setMessages((m) => [...m, data]);
     };
 
     wsRef.current = ws;
@@ -30,13 +55,20 @@ function App() {
   return (
     <div className="bg-neutral-900 text-white min-h-screen overflow-x-hidden">
       <div className="container mx-auto max-w-3xl pb-44 px-2">
-        {messages.map((message, i) => (
-          <div key={i} className="m-10">
-            <span className="bg-white text-black rounded p-4">
-              {message}
-            </span>
-          </div>
-        ))}
+        {messages.map((msg, i) => {
+          const isMe = msg.senderId === myIdRef.current;
+          const name = isMe ? "Me" : strangerMap[msg.senderId];
+
+          return (
+            <div key={i} className={`m-4 flex ${isMe ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-xs rounded p-3 ${isMe ? "bg-blue-500" : "bg-neutral-700"}`}>
+                <div className="text-xs opacity-70 mb-1">{name}</div>
+                <div>{msg.message}</div>
+              </div>
+            </div>
+          );
+        })}
+
       </div>
 
       <div className="fixed inset-x-0 bottom-0 flex justify-center bg-neutral-900">
@@ -55,7 +87,7 @@ function App() {
                 wsRef.current?.send(
                   JSON.stringify({
                     type: "chat",
-                    payload: { message: input }
+                    payload: { senderId: myIdRef.current, message: input }
                   })
                 );
 
@@ -63,7 +95,7 @@ function App() {
               }}
               className="bg-white px-4 py-1 rounded-full text-black hover:bg-gray-300"
             >
-              Ask
+              Send
             </button>
           </div>
         </div>
