@@ -52,6 +52,22 @@ function App() {
     return () => ws.close();
   }, []);
 
+  const sendMessage = () => {
+    if (!input.trim()) return;
+
+    wsRef.current?.send(
+      JSON.stringify({
+        type: "chat",
+        payload: {
+          senderId: myIdRef.current,
+          message: input,
+        },
+      })
+    );
+
+    setInput("");
+  };
+
   return (
     <div className="bg-neutral-900 text-white min-h-screen overflow-x-hidden">
       <div className="container mx-auto max-w-3xl pb-44 px-2">
@@ -78,21 +94,17 @@ function App() {
             rows={2}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+
           />
           <div className="flex justify-end">
             <button
-              onClick={() => {
-                if (!input.trim()) return;
-
-                wsRef.current?.send(
-                  JSON.stringify({
-                    type: "chat",
-                    payload: { senderId: myIdRef.current, message: input }
-                  })
-                );
-
-                setInput("");
-              }}
+              onClick={sendMessage}
               className="bg-white px-4 py-1 rounded-full text-black hover:bg-gray-300"
             >
               Send
